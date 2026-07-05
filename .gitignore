@@ -1,0 +1,4 @@
+node-xiao/build/
+receiver-esp32/build/
+*.old
+sdkconfig.old
