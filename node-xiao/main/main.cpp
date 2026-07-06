@@ -16,6 +16,7 @@ static void imu_task(void *pvParameters) {
         if (ret == ESP_OK) {
             ESP_LOGI(TAG,"gx:%.2f gy:%.2f gz:%.2f", 
                      data.gyro_x, data.gyro_y, data.gyro_z);
+            espnow_send_imu(&data);
         }
         vTaskDelay(pdMS_TO_TICKS(5)); // 200Hz sample rate
     }
@@ -31,12 +32,16 @@ extern "C" void app_main(void) {
         .scl_io_num = GPIO_NUM_7,
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
-    };
-    bus_cfg.flags.enable_internal_pullup = true;
+    }; bus_cfg.flags.enable_internal_pullup = true;
+
+
     ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &bus_handle));
 
     // Init IMU
     ESP_ERROR_CHECK(imu_init(bus_handle));
+    //espnow init
+    ESP_ERROR_CHECK(espnow_init());
+
 
     // Start IMU task
    xTaskCreate(imu_task,    // which function to run as a task
@@ -46,3 +51,4 @@ extern "C" void app_main(void) {
             5,              // priority 
             NULL);          // task handle
 }
+
