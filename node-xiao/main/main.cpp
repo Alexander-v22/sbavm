@@ -5,8 +5,10 @@
 #include "esp_log.h"
 #include "imu.h"
 #include "espnow.h"
+#include "esp_mac.h"
 
 static const char *TAG = "MAIN";
+
 
 static void imu_task(void *pvParameters) {
     imu_data_t data;
@@ -23,6 +25,10 @@ static void imu_task(void *pvParameters) {
 }
 
 extern "C" void app_main(void) {
+    uint8_t mac[6];
+        esp_read_mac(mac, ESP_MAC_WIFI_STA);
+        ESP_LOGI(TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", 
+                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     
     // Create I2C bus
     i2c_master_bus_handle_t bus_handle;

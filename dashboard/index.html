@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBAVM — Kinetic Chain Diagnostics</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>SBAVM</h1>
+        <span id="connection-status">DISCONNECTED</span>
+    </header>
+
+    <main id="dashboard">
+
+        <section id="camera-row">
+            <div class="camera-slot">CAM 1</div>
+            <div class="camera-slot">CAM 2</div>
+            <div class="camera-slot">CAM 3</div>
+        </section>
+
+        <section id="body-viz">
+            <canvas id="three-canvas"></canvas>
+        </section>
+
+        <section id="chart-panel">
+            <canvas id="gyro-chart"></canvas>
+        </section>
+
+        <section id="stats-row">
+            <div id="dt-readout">
+                <div>Δt1: <span id="dt1-value">--</span> ms</div>
+                <div>Δt2: <span id="dt2-value">--</span> ms</div>
+            </div>
+            <div id="punch-log"></div>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
