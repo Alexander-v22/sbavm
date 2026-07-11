@@ -6,6 +6,7 @@
 #include "imu.h"
 #include "espnow.h"
 #include "esp_mac.h"
+#include "nvs_flash.h"
 
 static const char *TAG = "MAIN";
 
@@ -25,6 +26,8 @@ static void imu_task(void *pvParameters) {
 }
 
 extern "C" void app_main(void) {
+
+    ESP_ERROR_CHECK(nvs_flash_init());
     uint8_t mac[6];
         esp_read_mac(mac, ESP_MAC_WIFI_STA);
         ESP_LOGI(TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", 

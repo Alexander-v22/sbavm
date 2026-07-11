@@ -3,8 +3,11 @@
 #include "esp_mac.h"
 #include "esp_timer.h"
 
+
+static const char *TAG = "ESPNOW";
 // Define receiver MAC here - read your ESP32 receiver MAC and fill this in
 uint8_t receiver_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
 
 esp_err_t espnow_init(void) {
 
