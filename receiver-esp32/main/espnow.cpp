@@ -42,10 +42,21 @@ static void espnow_recv_callback(const esp_now_recv_info_t *info, const uint8_t 
 }
 
 esp_err_t espnow_init(void) {
+    
+    esp_netif_create_default_wifi_ap();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    
+    wifi_config_t wifi_config = {};
+    strcpy((char*)wifi_config.ap.ssid, "SBAVM-AP");
+    wifi_config.app.ssid_len = strlen("SBAVM-AP");
+    wifi_config.ap.channel = 1;
+    wifi_config.ap.max_connection = 4;
+    wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP)); // 
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_ERROR_CHECK(esp_now_init());

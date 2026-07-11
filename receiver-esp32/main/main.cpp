@@ -14,13 +14,18 @@ extern "C" void app_main(void) {
 
     // NVS init
     ESP_ERROR_CHECK(nvs_flash_init());
+    
     // TCP/IP stack init
     ESP_ERROR_CHECK(esp_netif_init());
+    
     // Event loop init
-    esp_netif_create_default_wifi_ap();
-    // Init ESP-NOW + WiFi AP
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    // Init ESP-NOW + WiFi AP (this now also creates the AP netif internally)
     ESP_ERROR_CHECK(espnow_init());
+
     // Init WebSocket server
     ESP_ERROR_CHECK(websocket_init());
+    
     ESP_LOGI(TAG, "SBAVM receiver ready");
 }
