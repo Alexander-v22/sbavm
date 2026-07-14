@@ -10,7 +10,6 @@ uint8_t receiver_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 
 esp_err_t espnow_init(void) {
-
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg)); //
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA)); //STA == Station Mode chip acts as wifi client rater than an access point

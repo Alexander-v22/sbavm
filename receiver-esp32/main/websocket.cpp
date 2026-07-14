@@ -54,7 +54,12 @@ esp_err_t websocket_send(const char *json) {
     ws_pkt.payload = (uint8_t *)json;
     ws_pkt.len = strlen(json);
 
-    return httpd_ws_send_frame_async(server, ws_client_fd, &ws_pkt);
+    
+    esp_err_t ret = httpd_ws_send_frame_async(server, ws_client_fd, &ws_pkt);
+    if (ret != ESP_OK) {
+        ws_client_fd = -1;
+    }
+    return ret;
 }
 
 

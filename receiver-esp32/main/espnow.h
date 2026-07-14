@@ -4,6 +4,9 @@
 #include "esp_now.h"
 #include "esp_wifi.h"
 
+
+
+
 typedef struct {
     uint8_t mac[6];
     float gyro_x;

@@ -3,6 +3,9 @@
 #include "esp_mac.h"
 #include "websocket.h"
 #include <stdio.h>
+ #include <math.h>
+
+#define CHANGE_THRESHOLD 5.0f  // degrees/second — tune this later
 
 
 
@@ -19,6 +22,20 @@ static const char* mac_to_node_name(const uint8_t *mac) {
     return "unknown";
 }
 
+
+static float last_sent_magnitude[3] = {0, 0, 0};  // ankle, waist, wrist
+
+static int node_name_to_index(const char *node_name){
+    if (strcmp(node_name, "ankle") == 0) return 0;
+    if (strcmp(node_name, "waist") == 0) return 1;
+    if (strcmp(node_name, "wirst") == 0) return 2;
+    //strcmp is like memcmp but specifically for comparing C strings
+
+    return -1;
+}
+
+
+
 static void espnow_recv_callback(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
   
     if (len != sizeof(espnow_packet_t)) {
@@ -30,6 +47,21 @@ static void espnow_recv_callback(const esp_now_recv_info_t *info, const uint8_t 
     memcpy(&packet, data, sizeof(espnow_packet_t));
     
     const char *node_name = mac_to_node_name(packet.mac);
+    int idx = node_name_to_index(node_name); 
+    //idx tells us which slot in the last_sent_magnitude[idx] reads/writes the right slot
+    if (idx == -1) return;
+
+    float magnitude = sqrtf(packet.gyro_x * packet.gyro_x + 
+                         packet.gyro_y * packet.gyro_y + 
+                         packet.gyro_z * packet.gyro_z);
+    
+    float change = fabsf(magnitude - last_sent_magnitude[idx]);
+    if (change < CHANGE_THRESHOLD) {
+        return;
+    }
+    
+    last_sent_magnitude[idx] = magnitude;
+
     
     char json[200];
     snprintf(json, sizeof(json),
@@ -37,8 +69,6 @@ static void espnow_recv_callback(const esp_now_recv_info_t *info, const uint8_t 
              node_name, packet.gyro_x, packet.gyro_y, packet.gyro_z, packet.timestamp);
     
     websocket_send(json);
-    
-    ESP_LOGI(TAG, "%s", json);
 }
 
 esp_err_t espnow_init(void) {
