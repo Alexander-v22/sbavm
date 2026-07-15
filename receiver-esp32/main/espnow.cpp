@@ -2,8 +2,10 @@
 #include "esp_log.h"
 #include "esp_mac.h"
 #include "websocket.h"
+#include "peak_detection.h"
 #include <stdio.h>
  #include <math.h>
+ 
 
 #define CHANGE_THRESHOLD 5.0f  // degrees/second — tune this later
 
@@ -48,8 +50,20 @@ static void espnow_recv_callback(const esp_now_recv_info_t *info, const uint8_t 
     
     const char *node_name = mac_to_node_name(packet.mac);
     int idx = node_name_to_index(node_name); 
-    //idx tells us which slot in the last_sent_magnitude[idx] reads/writes the right slot
     if (idx == -1) return;
+
+    // Peak detection runs on EVERY sample, regardless of bandwidth filtering below
+    peak_detection_update(idx, packet.gyro_x, packet.gyro_y, packet.gyro_z, packet.timestamp);
+
+    float dt1, dt2;
+    if (peak_detection_check_punch(&dt1, &dt2)) {
+        char punch_json[200];
+        snprintf(punch_json, sizeof(punch_json),
+                 "{\"type\":\"punch\",\"punch_type\":\"unknown\",\"dt1\":%.1f,\"dt2\":%.1f,\"timestamp\":%lld,\"valid\":true}",
+                 dt1, dt2, packet.timestamp);
+        websocket_send(punch_json);
+        ESP_LOGI(TAG, "PUNCH DETECTED: dt1=%.1fms dt2=%.1fms", dt1, dt2);
+    }
 
     float magnitude = sqrtf(packet.gyro_x * packet.gyro_x + 
                          packet.gyro_y * packet.gyro_y + 
@@ -62,7 +76,6 @@ static void espnow_recv_callback(const esp_now_recv_info_t *info, const uint8_t 
     
     last_sent_magnitude[idx] = magnitude;
 
-    
     char json[200];
     snprintf(json, sizeof(json),
              "{\"type\":\"imu\",\"node\":\"%s\",\"gyro_x\":%.2f,\"gyro_y\":%.2f,\"gyro_z\":%.2f,\"timestamp\":%lld,\"peak\":false}",
