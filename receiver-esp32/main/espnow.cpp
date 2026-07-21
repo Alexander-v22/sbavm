@@ -1,6 +1,7 @@
 #include "espnow.h"
 #include "esp_log.h"
 #include "esp_mac.h"
+#include "esp_timer.h"
 #include "websocket.h"
 #include "peak_detection.h"
 #include <stdio.h>
@@ -13,24 +14,33 @@
 
 static const char *TAG = "ESPNOW_RX";
 
-static const uint8_t ankle_mac[6] = {0xac, 0x27, 0x6e, 0x7e, 0x19, 0x1c};
-static const uint8_t waist_mac[6] = {0xac, 0x27, 0x6e, 0x7e, 0x20, 0x24};
-static const uint8_t wrist_mac[6] = {0xac, 0x27, 0x6e, 0x7e, 0xa3, 0x8c};
+static const uint8_t ankle_right_mac[6] = {0xac, 0x27, 0x6e, 0x7e, 0x19, 0x1c};
+static const uint8_t waist_mac[6]       = {0xac, 0x27, 0x6e, 0x7e, 0x20, 0x24};
+static const uint8_t wrist_right_mac[6] = {0xac, 0x27, 0x6e, 0x7e, 0xa3, 0x8c};
+static const uint8_t ankle_left_mac[6]  = {0xac, 0x27, 0x6e, 0x7c, 0x13, 0x08};
+static const uint8_t wrist_left_mac[6]  = {0xac, 0x27, 0x6e, 0x7f, 0x95, 0xd8};
+
+
+
 
 static const char* mac_to_node_name(const uint8_t *mac) {
-    if (memcmp(mac, ankle_mac, 6) == 0) return "ankle";
+    if (memcmp(mac, ankle_right_mac, 6) == 0) return "ankle_right";
     if (memcmp(mac, waist_mac, 6) == 0) return "waist";
-    if (memcmp(mac, wrist_mac, 6) == 0) return "wrist";
+    if (memcmp(mac, wrist_right_mac, 6) == 0) return "wrist_right";
+    if (memcmp(mac, ankle_left_mac, 6) == 0) return "ankle_left";
+    if (memcmp(mac, wrist_left_mac, 6) == 0) return "wrist_left";
     return "unknown";
 }
 
-
-static float last_sent_magnitude[3] = {0, 0, 0};  // ankle, waist, wrist
+// ankle_right, waist, wrist_right, ankle_left, wrist_left
+static float last_sent_magnitude[5] = {0, 0, 0, 0, 0};  
 
 static int node_name_to_index(const char *node_name){
-    if (strcmp(node_name, "ankle") == 0) return 0;
+    if (strcmp(node_name, "ankle_right") == 0) return 0;
     if (strcmp(node_name, "waist") == 0) return 1;
-    if (strcmp(node_name, "wirst") == 0) return 2;
+    if (strcmp(node_name, "wrist_right") == 0) return 2;
+    if (strcmp(node_name, "ankle_left") == 0) return 3;
+    if (strcmp(node_name, "wrist_left") == 0) return 4;
     //strcmp is like memcmp but specifically for comparing C strings
 
     return -1;
@@ -53,16 +63,18 @@ static void espnow_recv_callback(const esp_now_recv_info_t *info, const uint8_t 
     if (idx == -1) return;
 
     // Peak detection runs on EVERY sample, regardless of bandwidth filtering below
-    peak_detection_update(idx, packet.gyro_x, packet.gyro_y, packet.gyro_z, packet.timestamp);
+    int64_t receiver_timestamp = esp_timer_get_time();
+    peak_detection_update(idx, packet.gyro_x, packet.gyro_y, packet.gyro_z, receiver_timestamp);
 
     float dt1, dt2;
-    if (peak_detection_check_punch(&dt1, &dt2)) {
+    const char *punch_type; //New Addition to this block so that we can now classify punch tpye
+    if (peak_detection_check_punch(&dt1, &dt2, &punch_type)) {
         char punch_json[200];
         snprintf(punch_json, sizeof(punch_json),
-                 "{\"type\":\"punch\",\"punch_type\":\"unknown\",\"dt1\":%.1f,\"dt2\":%.1f,\"timestamp\":%lld,\"valid\":true}",
-                 dt1, dt2, packet.timestamp);
+                "{\"type\":\"punch\",\"punch_type\":\"%s\",\"dt1\":%.1f,\"dt2\":%.1f,\"timestamp\":%lld,\"valid\":true}",
+                punch_type, dt1, dt2, packet.timestamp);
         websocket_send(punch_json);
-        ESP_LOGI(TAG, "PUNCH DETECTED: dt1=%.1fms dt2=%.1fms", dt1, dt2);
+        ESP_LOGI(TAG, "PUNCH DETECTED: type=%s dt1=%.1fms dt2=%.1fms", punch_type, dt1, dt2);
     }
 
     float magnitude = sqrtf(packet.gyro_x * packet.gyro_x + 
