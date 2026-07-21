@@ -15,6 +15,8 @@ esp_err_t espnow_init(void) {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA)); //STA == Station Mode chip acts as wifi client rater than an access point
     ESP_ERROR_CHECK(esp_wifi_start());
 
+    // forces every XIAO to explicity transmit on channel 1 this matches the reciers wifi config
+    ESP_ERROR_CHECK(esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE));
     ESP_ERROR_CHECK(esp_now_init());
 
     esp_now_peer_info_t peer = {}; // struct sitting in memory
@@ -39,10 +41,8 @@ esp_err_t espnow_send_imu(const imu_data_t *data) {
     packet.timestamp = esp_timer_get_time();
 
     esp_err_t ret = esp_now_send(receiver_mac, (uint8_t *)&packet, sizeof(packet));
-
     if (ret != ESP_OK) {
         ESP_LOGE(TAG,"ESP-NOW send failed: %s", esp_err_to_name(ret));
     }
-
     return ret;
 }

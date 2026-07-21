@@ -11,32 +11,67 @@
 <body>
 
     <header>
-        <h1>SBAVM</h1>
-        <span id="connection-status">DISCONNECTED</span>
+        <div class="brand">
+            <h1>SBAVM</h1>
+            <span class="subtitle">Kinetic Chain Diagnostics</span>
+        </div>
+        <div class="status-group">
+            <span id="connection-dot"></span>
+            <span id="connection-status">DISCONNECTED</span>
+        </div>
     </header>
 
     <main id="dashboard">
 
-        <section id="camera-row">
-            <div class="camera-slot">CAM 1</div>
-            <div class="camera-slot">CAM 2</div>
-            <div class="camera-slot">CAM 3</div>
+        <section id="body-viz" class="panel">
+            <div class="panel-header">
+                <h2>Body Kinematics</h2>
+                <div class="legend">
+                    <span class="legend-item"><i class="dot ankle"></i>Ankle</span>
+                    <span class="legend-item"><i class="dot waist"></i>Waist</span>
+                    <span class="legend-item"><i class="dot wrist"></i>Wrist</span>
+                </div>
+            </div>
+            <div class="panel-body">
+                <canvas id="three-canvas"></canvas>
+            </div>
         </section>
 
-        <section id="body-viz">
-            <canvas id="three-canvas"></canvas>
-        </section>
-
-        <section id="chart-panel">
-            <canvas id="gyro-chart"></canvas>
+        <section id="chart-panel" class="panel">
+            <div class="panel-header">
+                <h2>Angular Velocity</h2>
+                <span class="panel-sub">|&omega;| deg/s</span>
+            </div>
+            <div class="panel-body">
+                <canvas id="gyro-chart"></canvas>
+            </div>
         </section>
 
         <section id="stats-row">
-            <div id="dt-readout">
-                <div>Δt1: <span id="dt1-value">--</span> ms</div>
-                <div>Δt2: <span id="dt2-value">--</span> ms</div>
+            <div id="dt-readout" class="panel">
+                <div class="panel-header">
+                    <h2>Last Punch</h2>
+                    <span id="punch-type-badge">--</span>
+                </div>
+                <div class="dt-values">
+                    <div class="dt-metric">
+                        <span class="dt-label">&Delta;t1</span>
+                        <span id="dt1-value" class="dt-number">--</span>
+                        <span class="dt-unit">ms</span>
+                    </div>
+                    <div class="dt-metric">
+                        <span class="dt-label">&Delta;t2</span>
+                        <span id="dt2-value" class="dt-number">--</span>
+                        <span class="dt-unit">ms</span>
+                    </div>
+                </div>
             </div>
-            <div id="punch-log"></div>
+            <div id="punch-log" class="panel">
+                <div class="panel-header">
+                    <h2>Punch Log</h2>
+                </div>
+                <div id="punch-log-entries"></div>
+            </div>
         </section>
 
     </main>
