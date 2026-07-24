@@ -1,9 +1,18 @@
 // ---------- Shared node config ----------
-const NODES = ["ankle", "waist", "wrist"];
+const NODES = ["ankle_right", "ankle_left", "waist", "wrist_right", "wrist_left"];
 const NODE_COLORS = {
-    ankle: "#4d7a9c",
+    ankle_right: "#4d7a9c",
+    ankle_left: "#7a5c8a",
     waist: "#ad7f3e",
-    wrist: "#3c7d72",
+    wrist_right: "#3c7d72",
+    wrist_left: "#9c5a4d",
+};
+const NODE_LABELS = {
+    ankle_right: "Ankle R",
+    ankle_left: "Ankle L",
+    waist: "Waist",
+    wrist_right: "Wrist R",
+    wrist_left: "Wrist L",
 };
 
 // ---------- WebSocket connection ----------
@@ -40,16 +49,18 @@ ws.onmessage = (event) => {
 const MAX_POINTS = 100;
 
 const gyroHistory = {
-    ankle: [],
+    ankle_right: [],
+    ankle_left: [],
     waist: [],
-    wrist: [],
+    wrist_right: [],
+    wrist_left: [],
 };
 
 const gyroChart = new Chart(document.getElementById("gyro-chart").getContext("2d"), {
     type: "line",
     data: {
         datasets: NODES.map((node) => ({
-            label: node[0].toUpperCase() + node.slice(1),
+            label: NODE_LABELS[node],
             data: gyroHistory[node],
             borderColor: NODE_COLORS[node],
             backgroundColor: NODE_COLORS[node] + "22",
@@ -100,14 +111,8 @@ function chartRenderLoop() {
 requestAnimationFrame(chartRenderLoop);
 
 // ---------- 3D body visualization ----------
-// Sensor positions sit on a boxing-stance humanoid: right leg/arm lead the
-// stance so the ankle and wrist sensors land on real limb endpoints.
-const NODE_POSITIONS = {
-    ankle: new THREE.Vector3(0.16, -1.4, 0),
-    waist: new THREE.Vector3(0, 0, 0),
-    wrist: new THREE.Vector3(0.95, 0.35, 0.4),
-};
-
+// Boxing-stance humanoid: right arm/leg lead the stance, left arm/leg trail
+// and mirror them, so all 5 sensor markers land on real limb endpoints.
 const bodyVizBody = document.querySelector("#body-viz .panel-body");
 const threeCanvas = document.getElementById("three-canvas");
 
@@ -167,12 +172,14 @@ const headCenter = new THREE.Vector3(0, 1.12, 0);
 
 const rightShoulder = new THREE.Vector3(0.22, 0.68, 0);
 const rightElbow = new THREE.Vector3(0.62, 0.5, 0.22);
+const rightWrist = new THREE.Vector3(0.95, 0.35, 0.4);
 const leftShoulder = new THREE.Vector3(-0.22, 0.68, 0);
 const leftElbow = new THREE.Vector3(-0.3, 0.42, 0.05);
 const leftWrist = new THREE.Vector3(-0.32, 0.02, 0.08);
 
 const rightHip = new THREE.Vector3(0.14, -0.15, 0);
 const rightKnee = new THREE.Vector3(0.16, -0.78, 0.08);
+const rightAnkle = new THREE.Vector3(0.16, -1.4, 0);
 const leftHip = new THREE.Vector3(-0.14, -0.15, 0);
 const leftKnee = new THREE.Vector3(-0.16, -0.78, -0.05);
 const leftAnkle = new THREE.Vector3(-0.16, -1.4, 0);
@@ -190,29 +197,38 @@ headMesh.position.copy(headCenter);
 headMesh.scale.set(1, 1.2, 1);
 figureGroup.add(headMesh);
 
-// Arms (right arm extended into the wrist sensor, left arm guarding)
+// Arms (both wrist endpoints carry a sensor marker, so no extra joint cap
+// is needed there — the colored sphere added below covers it)
 addJointMesh(rightShoulder, 0.09);
 addBoneMesh(rightShoulder, rightElbow, 0.085, 0.07);
 addJointMesh(rightElbow, 0.07);
-addBoneMesh(rightElbow, NODE_POSITIONS.wrist, 0.07, 0.055);
+addBoneMesh(rightElbow, rightWrist, 0.07, 0.055);
 
 addJointMesh(leftShoulder, 0.09);
 addBoneMesh(leftShoulder, leftElbow, 0.085, 0.07);
 addJointMesh(leftElbow, 0.07);
 addBoneMesh(leftElbow, leftWrist, 0.07, 0.055);
-addJointMesh(leftWrist, 0.06);
 
-// Legs (right leg lead stance into the ankle sensor, left leg trailing)
+// Legs (both ankle endpoints carry a sensor marker)
 addJointMesh(rightHip, 0.13);
 addBoneMesh(rightHip, rightKnee, 0.125, 0.1);
 addJointMesh(rightKnee, 0.1);
-addBoneMesh(rightKnee, NODE_POSITIONS.ankle, 0.1, 0.08);
+addBoneMesh(rightKnee, rightAnkle, 0.1, 0.08);
 
 addJointMesh(leftHip, 0.13);
 addBoneMesh(leftHip, leftKnee, 0.125, 0.1);
 addJointMesh(leftKnee, 0.1);
 addBoneMesh(leftKnee, leftAnkle, 0.1, 0.08);
-addJointMesh(leftAnkle, 0.075);
+
+// Sensor marker positions reuse the limb endpoints above so they land
+// exactly on the mirrored left/right wrist and ankle joints.
+const NODE_POSITIONS = {
+    ankle_right: rightAnkle,
+    ankle_left: leftAnkle,
+    waist: new THREE.Vector3(0, 0, 0),
+    wrist_right: rightWrist,
+    wrist_left: leftWrist,
+};
 
 const nodeMeshes = {};
 NODES.forEach((node) => {
@@ -291,14 +307,14 @@ function handlePunchMessage(msg) {
     dt2El.textContent = msg.dt2.toFixed(1);
 
     punchTypeBadge.textContent = msg.punch_type;
-    punchTypeBadge.className = msg.valid ? "valid" : "invalid";
+    punchTypeBadge.className = `${msg.punch_type}${msg.valid ? "" : " invalid"}`;
 
     const entry = document.createElement("div");
     entry.className = msg.valid ? "punch-entry" : "punch-entry invalid";
     const time = new Date().toLocaleTimeString([], { hour12: false });
     entry.innerHTML = `
         <span class="punch-time">${time}</span>
-        <span class="punch-type">${msg.punch_type}</span>
+        <span class="punch-type ${msg.punch_type}">${msg.punch_type}</span>
         <span class="punch-dt">&Delta;t1 ${msg.dt1.toFixed(1)}ms &middot; &Delta;t2 ${msg.dt2.toFixed(1)}ms</span>
         <span class="punch-valid">${msg.valid ? "VALID" : "REJECTED"}</span>
     `;

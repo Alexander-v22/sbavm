@@ -53,7 +53,9 @@ void peak_detection_update(int node_idx, float gyro_x, float gyro_y, float gyro_
     
     if (!is_peak) {
         if (magnitude > 150.0f) {
-            ESP_LOGI("PEAK_DEBUG", "node:%d mag:%.1f is_peak:0 state:%d", node_idx, magnitude, state);
+            //ESP_LOGI("PEAK_DEBUG", "node:%d mag:%.1f is_peak:0 state:%d", node_idx, magnitude, state);
+            ESP_LOGI("AXIS_DEBUG", "peaked_node:%d gx:%.1f gy:%.1f gz:%.1f", 
+             node_idx, gyro_x, gyro_y, gyro_z);
         }
         return;
     }
@@ -71,13 +73,17 @@ void peak_detection_update(int node_idx, float gyro_x, float gyro_y, float gyro_
 
         pending_punch_type = (node_idx == 2) ? "cross" : "jab";
 
+        // need to tell what kind of punch where throwing 
+        ESP_LOGI("AXIS_DEBUG", "peaked_node:%d gx:%.1f gy:%.1f gz:%.1f", 
+             node_idx, gyro_x, gyro_y, gyro_z);
+
         pending_dt1 = (waist_peak_time - ankle_peak_time) / 1000.0f;
         pending_dt2 = (wrist_peak_time - waist_peak_time) / 1000.0f;
         punch_ready = true;
         state = WAITING_FOR_ANKLE;
     }
-    
-    ESP_LOGI("PEAK_DEBUG", "node:%d mag:%.1f is_peak:1 state_after:%d", node_idx, magnitude, state);
+
+    //ESP_LOGI("PEAK_DEBUG", "node:%d mag:%.1f is_peak:1 state_after:%d", node_idx, magnitude, state);
 }
 
 
