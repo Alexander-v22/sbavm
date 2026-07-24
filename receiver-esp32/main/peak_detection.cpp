@@ -25,6 +25,15 @@ static int64_t waist_peak_time = 0;
 static int64_t wrist_peak_time = 0;
 static int64_t last_peak_time[5] = {0, 0, 0, 0, 0};
 
+
+// for right hook classifaction 
+static float wrist_gz_min = 0;
+static float wrist_gz_max = 0;
+static float wrist_gy_min = 0;
+static float wrist_gy_max = 0;
+static bool wrist_tracking = false;
+
+
 static bool punch_ready = false;
 static float pending_dt1 = 0;
 static float pending_dt2 = 0;
@@ -32,6 +41,21 @@ static float pending_dt2 = 0;
 void peak_detection_update(int node_idx, float gyro_x, float gyro_y, float gyro_z, int64_t timestamp) {
     
     float magnitude = sqrtf(gyro_x*gyro_x + gyro_y*gyro_y + gyro_z*gyro_z);
+
+    if (node_idx == 2 || node_idx == 4) {
+        if (!wrist_tracking) {
+            wrist_gz_min = gyro_z;
+            wrist_gz_max = gyro_z;
+            wrist_gy_min = gyro_y;
+            wrist_gy_max = gyro_y;
+            wrist_tracking = true;
+        } else {
+            if (gyro_z < wrist_gz_min) wrist_gz_min = gyro_z;
+            if (gyro_z > wrist_gz_max) wrist_gz_max = gyro_z;
+            if (gyro_y < wrist_gy_min) wrist_gy_min = gyro_y;
+            if (gyro_y > wrist_gy_max) wrist_gy_max = gyro_y;
+        }
+    }
     
     bool is_peak = (magnitude < prev_magnitude[node_idx]) && 
                (prev_magnitude[node_idx] > PEAK_THRESHOLD_DPS) &&
@@ -71,7 +95,14 @@ void peak_detection_update(int node_idx, float gyro_x, float gyro_y, float gyro_
     else if (state == WAITING_FOR_WRIST && (node_idx == 2 || node_idx == 4)) {
         wrist_peak_time = timestamp;
 
-        pending_punch_type = (node_idx == 2) ? "cross" : "jab";
+        bool is_right_hook = (node_idx == 2) && (wrist_gz_max>50.0f) && (wrist_gz_min < -300.0f);
+
+
+        if (is_right_hook) {
+            pending_punch_type = "hook_right";
+        } else {
+            pending_punch_type = (node_idx == 2) ? "cross" : "jab";
+        }
 
         // need to tell what kind of punch where throwing 
         ESP_LOGI("AXIS_DEBUG", "peaked_node:%d gx:%.1f gy:%.1f gz:%.1f", 
@@ -81,6 +112,8 @@ void peak_detection_update(int node_idx, float gyro_x, float gyro_y, float gyro_
         pending_dt2 = (wrist_peak_time - waist_peak_time) / 1000.0f;
         punch_ready = true;
         state = WAITING_FOR_ANKLE;
+
+
     }
 
     //ESP_LOGI("PEAK_DEBUG", "node:%d mag:%.1f is_peak:1 state_after:%d", node_idx, magnitude, state);

@@ -12,7 +12,7 @@
 
 
 
-static const char *TAG = "ESPNOW_RX";
+    static const char *TAG = "ESPNOW_RX";
 
 static const uint8_t ankle_right_mac[6] = {0xac, 0x27, 0x6e, 0x7e, 0x19, 0x1c};
 static const uint8_t waist_mac[6]       = {0xac, 0x27, 0x6e, 0x7e, 0x20, 0x24};
